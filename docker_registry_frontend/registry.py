@@ -3,6 +3,7 @@ import base64
 import functools
 import json
 import socket
+import ssl
 import urllib.error
 import urllib.request
 import urllib.parse
@@ -20,9 +21,13 @@ class DockerRegistry(abc.ABC):
 
     def __init__(self, name, url, user=None, password=None):
         self._name = name
-        self._url = url if url.startswith('http') else 'http://' + url
+        self._url = url   # if url.startswith('http') else 'http://' + url
         self._user = user
         self._password = password
+        self._context = None
+        self._is_ssl = url.startswith('https:')
+        if self._is_ssl:
+            self._context = ssl.create_default_context()
 
     def __key(self):
         return self._url
@@ -75,7 +80,7 @@ class DockerRegistry(abc.ABC):
             ).decode('ascii')
             request.add_header("Authorization", f"Basic {base64string}")
 
-        return urllib.request.urlopen(request, timeout=3)
+        return urllib.request.urlopen(request, timeout=30, context = self._context)
 
     def delete_repo(self, repo):
         raise NotImplementedError
